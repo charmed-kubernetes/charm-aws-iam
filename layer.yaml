@@ -1,0 +1,6 @@
+includes:
+  - 'interface:aws-iam'
+  - 'layer:basic'
+  - 'layer:tls-client'
+  - 'layer:leadership'
+repo: https://github.com/charmed-kubernetes/charm-aws-iam
