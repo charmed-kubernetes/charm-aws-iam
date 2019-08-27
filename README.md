@@ -20,5 +20,5 @@ juju add-relation aws-iam kubernetes-master
 ## Further information
 
 - [AWS IAM Homepage](https://github.com/kubernetes-sigs/aws-iam-authenticator)
-- [AWS IAM Charm Issue Tracker]()
+- [AWS IAM Charm Issue Tracker](https://launchpad.net/charm-aws-iam)
 - [AWS IAM Issue Tracker](https://github.com/kubernetes-sigs/aws-iam-authenticator/issues)

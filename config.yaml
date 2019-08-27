@@ -1,2 +1,6 @@
-options: {}
-
+options:
+  image:
+    type: string
+    default: "rocks.canonical.com:5000/cdk/aws-iam-authenticator:v0.4.0_ck1"
+    description: |
+      OCI Image to use for aws-iam-authentication.

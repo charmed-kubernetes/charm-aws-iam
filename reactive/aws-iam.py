@@ -11,7 +11,6 @@ from charms.leadership import leader_get, leader_set
 from charms.reactive import clear_flag, set_flag, is_flag_set
 from charms.reactive import endpoint_from_flag
 from charms.reactive import when, when_not
-
 from charms.templating.jinja2 import render
 
 from charms.layer import tls_client
@@ -257,6 +256,11 @@ def write_cert_secret():
     set_flag('charm.aws-iam.certificate-written')
 
 
+@when('config.changed.image')
+def regenerate_deployment():
+    clear_flag('charm.aws-iam.deployment-started')
+
+
 @when('leadership.set.cert', 'leadership.is_leader',
       'endpoint.aws-iam.available')
 @when_not('charm.aws-iam.deployment-started')
@@ -265,6 +269,7 @@ def apply_webhook_deployment():
     context = {}
     context['namespace'] = namespace
     context['cluster_id'] = leader_get('cluster_id')
+    context['image'] = hookenv.config('image')
     render('aws-iam-deployment.yaml', deployment_yaml, context)
     try:
         _kubectl('apply', '-f', deployment_yaml)
