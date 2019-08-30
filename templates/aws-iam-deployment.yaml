@@ -108,7 +108,7 @@ metadata:
   name: aws-iam-authenticator
   labels:
     aws-iam: "true"
-    k8s-app: "aws-iam-authenticator"
+    k8s-app: aws-iam-authenticator
 data:
   config.yaml: |
     # a unique-per-cluster identifier to prevent replay attacks
@@ -117,22 +117,25 @@ data:
 
 ---
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: {{ namespace }}
   name: aws-iam-authenticator
   labels:
-    k8s-app: "aws-iam-authenticator"
+    k8s-app: aws-iam-authenticator
     aws-iam: "true"
 spec:
+  selector:
+    matchLabels:
+      k8s-app: aws-iam-authenticator
   replicas: 2
   template:
     metadata:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
       labels:
-        k8s-app: "aws-iam-authenticator"
+        k8s-app: aws-iam-authenticator
         aws-iam: "true"
     spec:
       # use service account with access to
