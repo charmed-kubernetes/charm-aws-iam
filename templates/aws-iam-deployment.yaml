@@ -1,0 +1,190 @@
+# Copyright 2017 by the contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This is an example of how to deploy Heptio Authenticator for AWS.
+#
+# To use this, you'll at least need to edit the role ARNs in the ConfigMap. You
+# may also need to rework other bits to work in your cluster (e.g., node labels).
+#
+# This was tested with a kubeadm-installed cluster.
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: iamidentitymappings.iamauthenticator.k8s.aws
+spec:
+  group: iamauthenticator.k8s.aws
+  version: v1alpha1
+  scope: Cluster
+  names:
+    plural: iamidentitymappings
+    singular: iamidentitymapping
+    kind: IAMIdentityMapping
+    categories:
+    - all
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+          - arn
+          - username
+          properties:
+            arn:
+              type: string
+            username:
+              type: string
+            groups:
+              type: array
+              items:
+                type: string
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: aws-iam-authenticator
+  labels:
+    aws-iam: "true"
+rules:
+- apiGroups:
+  - iamauthenticator.k8s.aws
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - update
+  - patch
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-iam-authenticator
+  namespace: {{ namespace }}
+  labels:
+    aws-iam: "true"
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: aws-iam-authenticator
+  labels:
+    aws-iam: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aws-iam-authenticator
+subjects:
+- kind: ServiceAccount
+  name: aws-iam-authenticator
+  namespace: kube-system
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ namespace }}
+  name: aws-iam-authenticator
+  labels:
+    aws-iam: "true"
+    k8s-app: aws-iam-authenticator
+data:
+  config.yaml: |
+    # a unique-per-cluster identifier to prevent replay attacks
+    # (good choices are a random token or a domain name that will be unique to your cluster)
+    clusterID: {{ cluster_id }}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ namespace }}
+  name: aws-iam-authenticator
+  labels:
+    k8s-app: aws-iam-authenticator
+    aws-iam: "true"
+spec:
+  selector:
+    matchLabels:
+      k8s-app: aws-iam-authenticator
+  replicas: 2
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        k8s-app: aws-iam-authenticator
+        aws-iam: "true"
+    spec:
+      # use service account with access to
+      serviceAccountName: aws-iam-authenticator
+
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+
+      # run `aws-iam-authenticator server` with three volumes
+      # - config (mounted from the ConfigMap at /etc/aws-iam-authenticator/config.yaml)
+      # - state (secret TLS certificate and keys)
+      # - output (output kubeconfig to plug into your apiserver configuration, mounted from the host)
+      containers:
+      - name: aws-iam-authenticator
+        image: {{ image }}
+        args:
+        - server
+        - --config=/etc/aws-iam-authenticator/config.yaml
+        - --state-dir=/var/aws-iam-authenticator
+        - --kubeconfig-pregenerated=true
+        - --address=0.0.0.0
+        - --feature-gates=IAMIdentityMappingCRD=true
+
+        resources:
+          requests:
+            memory: 20Mi
+            cpu: 10m
+          limits:
+            memory: 20Mi
+            cpu: 100m
+
+        volumeMounts:
+        - name: config
+          mountPath: /etc/aws-iam-authenticator/
+        - name: state
+          mountPath: /var/aws-iam-authenticator/
+          readOnly: true
+        - name: output
+          mountPath: /etc/kubernetes/aws-iam-authenticator/
+
+      volumes:
+      - name: config
+        configMap:
+          name: aws-iam-authenticator
+      - name: output
+        emptyDir: {}
+      - name: state
+        secret:
+          secretName: aws-iam-certs

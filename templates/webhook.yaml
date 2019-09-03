@@ -1,0 +1,17 @@
+# clusters refers to the remote service.
+clusters:
+  - name: heptio-authenticator-aws
+    cluster:
+      certificate-authority-data: {{ cert }}
+      server: https://{{ service_ip }}:443/authenticate
+# users refers to the API Server's webhook configuration
+# (we don't need to authenticate the API server).
+users:
+  - name: apiserver
+# kubeconfig files require a context. Provide one for the API Server.
+current-context: webhook
+contexts:
+- name: webhook
+  context:
+    cluster: heptio-authenticator-aws
+    user: apiserver
