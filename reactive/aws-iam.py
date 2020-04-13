@@ -10,7 +10,7 @@ from charms.leadership import leader_get, leader_set
 
 from charms.reactive import clear_flag, set_flag, is_flag_set
 from charms.reactive import endpoint_from_flag
-from charms.reactive import when, when_not
+from charms.reactive import when, when_not, hook
 from charms.templating.jinja2 import render
 
 from charms.layer import tls_client
@@ -119,7 +119,13 @@ def _remove_webhook():
             os.remove(webhook_path)
 
 
+@hook('pre-series-upgrade')
+def pre_series_upgrade():
+    hookenv.status_set('blocked', 'Series upgrade in progress')
+
+
 @when_not('endpoint.aws-iam.available', 'charm.aws-iam.deployed-service')
+@when_not('upgrade.series.in-progress')
 def waiting_for_api():
     hookenv.status_set('waiting', 'Waiting for API server to become availble')
 
@@ -144,6 +150,7 @@ def deploy_service():
 
 @when('endpoint.aws-iam.available', 'charm.aws-iam.deployed-service')
 @when_not('certificates.available')
+@when_not('upgrade.series.in-progress')
 def waiting_for_certificate_relation():
     try:
         goal_state = hookenv.goal_state()
@@ -161,6 +168,7 @@ def waiting_for_certificate_relation():
 @when('certificates.available', 'charm.aws-iam.deployed-service',
       'endpoint.aws-iam.available')
 @when_not('leadership.set.cert')
+@when_not('upgrade.series.in-progress')
 def waiting_for_leadership_data():
     hookenv.status_set('waiting',
                        'Waiting for certificate to become available')
@@ -169,6 +177,7 @@ def waiting_for_leadership_data():
 @when('endpoint.aws-iam.available', 'charm.aws-iam.deployed-service')
 @when('certificates.available', 'leadership.is_leader')
 @when_not('charm.aws-iam.certificate-requested', 'leader.set.cert')
+@when_not('upgrade.series.in-progress')
 def request_certificate():
     '''Send the data that is required to create a server certificate for
     the webhook payload. Note that only the leader requests a certificate.
@@ -230,6 +239,7 @@ def publish_cluster_id():
 @when('leadership.set.cert', 'leadership.is_leader',
       'endpoint.aws-iam.available')
 @when_not('charm.aws-iam.certificate-written')
+@when_not('upgrade.series.in-progress')
 def write_cert_secret():
     ''' Write returned certificate into a secret for the webhook.
     This data is also shared across the leadership data to other
@@ -303,6 +313,7 @@ def write_webhook_yaml():
 
 @when('leadership.set.cert')
 @when_not('endpoint.aws-iam.available')
+@when_not('upgrade.series.in-progress')
 def waiting():
     hookenv.status_set('waiting',
                        'Waiting for API server to become available')
@@ -310,6 +321,7 @@ def waiting():
 
 @when('charm.aws-iam.written-webhook', 'charm.aws-iam.deployment-started',
       'leadership.is_leader')
+@when_not('upgrade.series.in-progress')
 def leader_ready():
     try:
         output = _kubectl('get', 'po', '-n', namespace, '--output', 'json')
@@ -337,8 +349,8 @@ def leader_ready():
                 msg = 'Waiting for {} pods to start'.format(len(not_running))
                 hookenv.status_set('maintenance', msg)
         elif len(aws_auth_pods) == 0:
-                msg = 'Waiting for pods to be created'
-                hookenv.status_set('maintenance', msg)
+            msg = 'Waiting for pods to be created'
+            hookenv.status_set('maintenance', msg)
         else:
             hookenv.status_set('active', 'Ready')
     except CalledProcessError as e:
@@ -349,6 +361,7 @@ def leader_ready():
 
 @when('charm.aws-iam.written-webhook')
 @when_not('leadership.is_leader')
+@when_not('upgrade.series.in-progress')
 def non_leader_ready():
     hookenv.status_set('active', 'Ready')
 
