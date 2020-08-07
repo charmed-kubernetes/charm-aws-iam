@@ -8,9 +8,9 @@ maintainers:
   - Mike Wilson <mike.wilson@canonical.com>
   - Adam Stokes <adam.stokes@canonical.com>
 series:
-  - xenial
-  - bionic
   - focal
+  - bionic
+  - xenial
 subordinate: true
 tags:
   - networking
