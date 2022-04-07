@@ -4,6 +4,7 @@ description: |
   Adds support for using AWS IAM to authenticate to a Kubernetes
   cluster. This cluster does not need to be running inside AWS,
   but it does need to be able to reach the AWS endpoint.
+docs: https://discourse.charmhub.io/t/aws-iam-docs-index/6095
 maintainers:
   - Mike Wilson <mike.wilson@canonical.com>
   - Adam Stokes <adam.stokes@canonical.com>
