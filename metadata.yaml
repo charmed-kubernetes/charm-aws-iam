@@ -9,6 +9,7 @@ maintainers:
   - Mike Wilson <mike.wilson@canonical.com>
   - Adam Stokes <adam.stokes@canonical.com>
 series:
+  - jammy
   - focal
   - bionic
   - xenial
