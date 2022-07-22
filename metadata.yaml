@@ -10,8 +10,8 @@ maintainers:
   - Adam Stokes <adam.stokes@canonical.com>
 series:
   - focal
+  - jammy
   - bionic
-  - xenial
 subordinate: true
 tags:
   - networking
