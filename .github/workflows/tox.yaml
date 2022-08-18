@@ -14,3 +14,6 @@ jobs:
     uses: charmed-kubernetes/workflows/.github/workflows/lint-unit.yaml@main
     needs:
       - call-inclusive-naming-check
+
+  validate-wheelhouse:
+    uses: charmed-kubernetes/workflows/.github/workflows/validate-wheelhouse.yaml@main  

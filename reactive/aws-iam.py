@@ -11,7 +11,7 @@ from charms.leadership import leader_get, leader_set
 from charms.reactive import clear_flag, set_flag, is_flag_set
 from charms.reactive import endpoint_from_flag
 from charms.reactive import when, when_not, hook
-from charms.templating.jinja2 import render
+from charmhelpers.core.templating import render
 
 from charms.layer import tls_client
 
