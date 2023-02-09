@@ -1,6 +1,6 @@
 import importlib
 
-aws_iam = importlib.import_module('aws-iam')
+aws_iam = importlib.import_module("aws-iam")
 
 
 def test_series_upgrade():
